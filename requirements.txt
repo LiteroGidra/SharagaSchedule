@@ -1,0 +1,4 @@
+aiogram
+pyhton-dotenv
+tzdata
+aiohttp
