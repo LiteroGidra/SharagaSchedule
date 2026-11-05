@@ -19,6 +19,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import CallbackQuery, KeyboardButton, Message, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import web
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -805,7 +806,7 @@ async def cb_add_all_group(cb: CallbackQuery, state: FSMContext):
 
 
 @dp.message(AddLesson.group, F.text)
-async def add_group(message: Message, state: FSMContext):
+async def add_group(message: Message, state: FsmContext if 'FsmContext' in globals() else FSMContext):
     await state.update_data(group=message.text.strip())
     await ask_week(message, state)
 
@@ -833,10 +834,30 @@ async def fallback(message: Message):
     await message.answer("Выбери действие в меню 👇", reply_markup=MENU)
 
 
+# ---------- ВЕБ-СЕРВЕР ДЛЯ UPTIMEROBOT ----------
+
+async def handle_ping(request):
+    return web.Response(text="Bot is alive!")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", handle_ping)
+    app.router.add_get("", handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+
 async def main():
     if not BOT_TOKEN:
         raise SystemExit("Не задан BOT_TOKEN. Добавь его в файл .env (BOT_TOKEN=...) или в переменные окружения.")
     logging.basicConfig(level=logging.INFO)
+    
+    # Запускаем веб-сервер для UptimeRobot и поллинг бота одновременно
+    await start_web_server()
+    
     bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     await dp.start_polling(bot)
 
