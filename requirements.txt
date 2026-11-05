@@ -1,0 +1,5 @@
+text
+
+aiogram
+python-dotenv
+tzdata
